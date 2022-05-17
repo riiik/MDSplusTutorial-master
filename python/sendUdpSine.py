@@ -1,13 +1,13 @@
+#!/usr/bin/python
+
 import socket, sys, time
 from struct import pack
 import numpy as np
 
-import matplotlib.pyplot as plt
-
 
 def send(ip, port, sock, values):
     print(values)
-    args = ["100I"]
+    args = ["200I"]
     for i in values:
         args.append(i)
     sock.sendto(pack(*args), (ip, port))
@@ -18,16 +18,13 @@ def main():
     port = 5432  # arbitrary port
     ip = "127.0.0.1"
 
-    sample_rate = 10000
-    freq = 100
-    samples = sample_rate / freq
+    freq = 1
+    samples = 200
     period = 1 / freq
+    bit_depth = 10
 
     x = np.arange(samples)
-    values = (512 * (np.sin(2 * np.pi * freq * x / sample_rate) + 1)).astype(int)
-    # plt.plot(x,values)
-    # plt.grid()
-    # plt.show()
+    values = np.sin(2 * np.pi * freq * x / samples)
 
     print("UDP target IP: {}".format(ip))
     print("UDP target port: {}".format(port))
@@ -37,8 +34,12 @@ def main():
     time.sleep(1)
 
     while True:
-        send(ip, port, sock, values)
-        time.sleep(period * samples)
+	noise = np.random.normal(scale=0.01, size=values.size)
+	noisy = (values + noise)
+        noisy /= np.max(np.abs(noisy), axis=0) 
+        noisy = ((2**bit_depth/2-1)*(noisy+1)).astype(int)
+        send(ip, port, sock, noisy)
+        time.sleep(period)
 
 
 if __name__ == "__main__":
