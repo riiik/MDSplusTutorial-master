@@ -5,9 +5,12 @@ from struct import pack
 import numpy as np
 
 
-def send(ip, port, sock, values):
+def send(ip, port, sock, values, t):
+    print(t)
     print(values)
-    args = ["200I"]
+    args = ["400I"]
+    for i in t:
+        args.append(i)
     for i in values:
         args.append(i)
     sock.sendto(pack(*args), (ip, port))
@@ -23,6 +26,8 @@ def main():
     period = 1 / freq
     bit_depth = 10
 
+    t = np.arange(samples) * 1000 / samples
+
     x = np.arange(samples)
     values = np.sin(2 * np.pi * freq * x / samples)
 
@@ -31,14 +36,15 @@ def main():
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    time.sleep(1)
+    time.sleep(period)
 
     while True:
 	noise = np.random.normal(scale=0.01, size=values.size)
 	noisy = (values + noise)
         noisy /= np.max(np.abs(noisy), axis=0) 
         noisy = ((2**bit_depth/2-1)*(noisy+1)).astype(int)
-        send(ip, port, sock, noisy)
+        send(ip, port, sock, noisy, t)
+        t = t + 1000
         time.sleep(period)
 
 
